@@ -4,6 +4,8 @@
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
+import logging  
+import time  
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
@@ -69,6 +71,12 @@ class QuantScraperDownloaderMiddleware:
         return s
 
     def process_request(self, request, spider):
+        # Log request headers
+        spider.logger.info(f"Request URL: {request.url}")  
+        spider.logger.debug(f"Request Headers: {request.headers}") 
+
+        # Add custom User-Agent
+        request.headers['User-Agent'] = "QuantScraperBot/1.0 (+http://example.com)"  
         # Called for each request that goes through the downloader
         # middleware.
 
@@ -81,6 +89,9 @@ class QuantScraperDownloaderMiddleware:
         return None
 
     def process_response(self, request, response, spider):
+        # Log response time
+        spider.logger.info(f"Response received for URL: {response.url}")  
+        response.meta['download_time'] = time.time() 
         # Called with the response returned from the downloader.
 
         # Must either;
@@ -90,6 +101,9 @@ class QuantScraperDownloaderMiddleware:
         return response
 
     def process_exception(self, request, exception, spider):
+        # Log exception details
+        spider.logger.error(f"Exception occurred for URL: {request.url}")  
+        spider.logger.error(f"Exception details: {exception}")  
         # Called when a download handler or a process_request()
         # (from other downloader middleware) raises an exception.
 
