@@ -75,11 +75,34 @@ async def main(message: cl.Message):
     and sends the response back to the user in a message object.
     """
     query_engine = cl.user_session.get("query_engine")
-    response = await cl.make_async(query_engine.query)(message.content)
+    try:  
+        response = await cl.make_async(query_engine.query)(message.content)
 
-    step = cl.Step()
+        step = cl.Step()
+    
+        if hasattr(response, "response"):
+            step.output = response.response
 
-    if hasattr(response, "response"):
-        step.output = response.response
-
-    await step.send()
+        await step.send()
+        
+    except Exception as e:
+        logger.error(f"Error occurred while processing the message: {e}")  
+        await cl.Message("An error occurred while processing your request. Please try again later.").send()  
+        
+@cl.on_message
+async def custom_step(message: cl.Message):
+    """
+    This function demonstrates how to implement custom steps in the chatbot.
+    You can extend this for any custom logic or workflows.
+    """
+    if message.content.lower() == "start process":
+        await cl.Message("Starting custom process...").send() 
+        
+        step = cl.Step()
+        step.output = "Custom step completed"
+        await step.send()  
+    
+    elif message.content.lower() == "stop process":
+        await cl.Message("Process stopped.").send()  
+    else:
+        await cl.Message("Please enter 'start process' to begin or 'stop process' to cancel.").send()  
