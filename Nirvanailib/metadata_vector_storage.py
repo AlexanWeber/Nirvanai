@@ -40,15 +40,16 @@ class QuantSimpleVectorStorage:
             gpt_temperature (float): The temperature to use for GPT predictions.
             source_folder (str): The folder containing the markdown files to use for indexing.
     """
-
-
-class QuantMetadataVectorStorage:
+ 
+class QuantMetadataVectorStorage(QuantSimpleVectorStorage):
     def __init__(self, persist_dir: str, gpt_model: str, gpt_temperature: float, source_folder: str):
         # collect arguments
         self.persist_dir = persist_dir
         self.gpt_model = gpt_model
         self.gpt_temperature = gpt_temperature
         self.source_folder = source_folder
+        self.query_cache = {}  
+        self.updated_sources = set() 
 
         # initialize attributes
         self.index = None
@@ -141,6 +142,30 @@ class QuantMetadataVectorStorage:
 
         return index
 
+    def update_document(self, document_path: str):
+       
+        logger.info(f"Updating document: {document_path}")
+        try:
+            if not os.path.isfile(document_path):
+                raise FileNotFoundError(f"File not found: {document_path}")
+
+            with open(document_path, 'r') as file:
+                content = file.read()
+            
+            text_splitter = TokenTextSplitter(
+                separator="\n## ", chunk_size=1024, chunk_overlap=0
+            )
+            node_parser = SimpleNodeParser.from_defaults(text_splitter=text_splitter)
+            document_node = node_parser.get_nodes_from_documents([content])
+
+            self.index.insert_nodes(document_node)
+            self.index.storage_context.persist(persist_dir=self.persist_dir)
+            self.updated_sources.add(document_path)
+
+            logger.info(f"Document updated and index rebuilt: {document_path}")
+        except Exception as e:
+            logger.error(f"Failed to update document: {e}")
+
     def setup_index(self):
         """
         Sets up the index for the vector store. If the index is already present in the storage context, it is loaded
@@ -175,6 +200,34 @@ class QuantMetadataVectorStorage:
             chunk_size=1024,
             callback_manager=CallbackManager([callback_handler])
         )
+
+
+    def cache_query_result(self, query: str, result: Any):
+    
+        logger.info(f"Caching query result for query: {query}")
+        self.query_cache[query] = result
+
+    def get_cached_query_result(self, query: str) -> Any:
+       
+        return self.query_cache.get(query)
+
+    def export_query_cache(self, output_path: str):
+        logger.info(f"Exporting query cache to: {output_path}")
+        try:
+            with open(output_path, 'w') as file:
+                json.dump(self.query_cache, file, indent=4)
+            logger.info("Query cache exported successfully.")
+        except Exception as e:
+            logger.error(f"Failed to export query cache: {e}")
+
+    def import_query_cache(self, input_path: str):
+        logger.info(f"Importing query cache from: {input_path}")
+        try:
+            with open(input_path, 'r') as file:
+                self.query_cache = json.load(file)
+            logger.info("Query cache imported successfully.")
+        except Exception as e:
+            logger.error(f"Failed to import query cache: {e}")
 
     def create_query_engine(self, callback_handler: BaseCallbackHandler = None) -> RetrieverQueryEngine:
         """
