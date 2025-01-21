@@ -26,6 +26,24 @@ watermark_position = (
     image_with_border.height - watermark_height - 10,  
 )
 
+# Add a border around the image
+border_size = 10
+image_with_border = ImageOps.expand(image, border=border_size, fill=background_color)
+
+# Add a watermark to the image
+watermark_text = "Nirvanai AI"
+watermark_font_size = 15
+watermark_font = ImageFont.truetype(font_path, watermark_font_size)
+
+watermark_width, watermark_height = draw.textsize(watermark_text, font=watermark_font)
+watermark_position = (
+    image_with_border.width - watermark_width - 20,  # Padding from the right
+    image_with_border.height - watermark_height - 10,  # Padding from the bottom
+)
+
+draw_with_border = ImageDraw.Draw(image_with_border)
+draw_with_border.text(watermark_position, watermark_text, fill="gray", font=watermark_font)  # Watermark text
+
 draw_with_border = ImageDraw.Draw(image_with_border)
 draw_with_border.text(watermark_position, watermark_text, fill="gray", font=watermark_font)  
 
