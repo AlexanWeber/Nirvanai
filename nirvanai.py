@@ -11,7 +11,7 @@ from quantgptlib.simple_vector_storage import QuantSimpleVectorStorage
 # Load environment variables
 load_dotenv(".env", override=True)
 
-# obtain gpt model name from environment variables
+# Obtain GPT model name and temperature from environment variables
 gpt_model = os.getenv('GPT_MODEL')
 gpt_temperature = float(os.getenv('GPT_TEMPERATURE'))
 
@@ -88,21 +88,32 @@ async def main(message: cl.Message):
     except Exception as e:
         logger.error(f"Error occurred while processing the message: {e}")  
         await cl.Message("An error occurred while processing your request. Please try again later.").send()  
-        
+
+# NEW: Custom Workflow Handler
 @cl.on_message
-async def custom_step(message: cl.Message):
+async def custom_workflow_handler(message: cl.Message):
     """
-    This function demonstrates how to implement custom steps in the chatbot.
-    You can extend this for any custom logic or workflows.
+    Handles predefined workflow commands sent by the user, such as initiating processes, 
+    viewing workflow status, or terminating workflows.
     """
-    if message.content.lower() == "start process":
-        await cl.Message("Starting custom process...").send() 
-        
+    if message.content.lower() == "initiate workflow":
+        await cl.Message("Workflow initiated! Preparing the tasks...").send()
+
         step = cl.Step()
-        step.output = "Custom step completed"
-        await step.send()  
-    
-    elif message.content.lower() == "stop process":
-        await cl.Message("Process stopped.").send()  
+        step.output = "Workflow step 1 complete."
+        await step.send()
+
+        step = cl.Step()
+        step.output = "Workflow step 2 complete."
+        await step.send()
+
+        await cl.Message("Workflow successfully completed!").send()
+
+    elif message.content.lower() == "view workflow status":
+        await cl.Message("Current workflow status: All steps are completed.").send()
+
+    elif message.content.lower() == "terminate workflow":
+        await cl.Message("Workflow has been terminated.").send()
+
     else:
-        await cl.Message("Please enter 'start process' to begin or 'stop process' to cancel.").send()  
+        await cl.Message("Invalid command. Please use 'initiate workflow', 'view workflow status', or 'terminate workflow'.").send()
