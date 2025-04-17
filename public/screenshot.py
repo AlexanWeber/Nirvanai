@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
 # Load the image again
 image = Image.open(input_image_path).convert("RGBA")
@@ -9,12 +9,42 @@ background_color = sample_area.getpixel((10, 10))
 
 # Draw text with matching background color
 draw = ImageDraw.Draw(image)
+
+# Dynamic text box size adjustment for multiple lines
+def draw_multiline_text(draw, text, position, font, max_width):
+    lines = []
+    width, height = draw.textsize(text, font)
+    # Split text into multiple lines based on max width
+    while width > max_width:
+        text = text.rsplit(' ', 1)[0]
+        lines.append(text)
+        text = text.rsplit(' ', 1)[1]
+        width, height = draw.textsize(text, font)
+    lines.append(text)
+    
+    y_offset = 0
+    for line in lines:
+        draw.text((position[0], position[1] + y_offset), line, font=font, fill="black")
+        y_offset += height
+    return (position[0], position[1] + y_offset)
+
+# Add the rectangle and text
+rectangle_position = (30, 20, 150, 60)
+text_position = (40, 30)
+new_text = "Sample text for multiline support"
+font_path = "path_to_font.ttf"
+font = ImageFont.truetype(font_path, 20)
+
+# Draw the rectangle and multiline text
 draw.rectangle(rectangle_position, fill=background_color)
-draw.text(text_position, new_text, fill="black", font=font)
+draw_multiline_text(draw, new_text, text_position, font, max_width=120)
 
 # Add a border around the image
 border_size = 10
 image_with_border = ImageOps.expand(image, border=border_size, fill=background_color)
+
+# Apply a filter (e.g., blur) to the image for added effect
+image_with_border = image_with_border.filter(ImageFilter.GaussianBlur(radius=2))
 
 # Create a transparent watermark layer
 watermark_text = "Nirvanai AI"
@@ -43,4 +73,4 @@ final_image = Image.alpha_composite(image_with_border.convert("RGBA"), watermark
 output_final_image_path = "/mnt/data/image_with_nirvanai_final_with_border.png"
 final_image.save(output_final_image_path)
 
-print(f"Final image with border and watermark saved to: {output_final_image_path}")
+print(f"Final image with border, watermark, and additional effects saved to: {output_final_image_path}")
