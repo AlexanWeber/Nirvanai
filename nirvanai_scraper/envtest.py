@@ -17,14 +17,48 @@ def get_environment_variable(variable_name: str):
         print(f"Warning: {variable_name} not found in environment variables.")
     return value
 
-def set_environment_variable(variable_name: str, value: str):
+def set_environment_variable(variable_name: str, value: str, persist: bool = False, env_file: str = ".env"):
     """
     Set a new environment variable or update an existing one.
+    Optionally persist the variable to a .env file.
+    
     :param variable_name: The name of the environment variable
     :param value: The value to set for the environment variable
+    :param persist: Whether to save the variable to a .env file
+    :param env_file: The .env file path
     """
+    if not variable_name.isidentifier():
+        raise ValueError("Invalid environment variable name.")
+
+    # Check if variable already exists
+    if variable_name in os.environ:
+        print(f"Overwriting existing variable: {variable_name}")
+
     os.environ[variable_name] = value
     print(f"{variable_name} set to {value}")
+
+    if persist:
+        lines = []
+        # Load existing .env content
+        if os.path.exists(env_file):
+            with open(env_file, "r") as f:
+                lines = f.readlines()
+
+        # Update or append the variable
+        updated = False
+        for i, line in enumerate(lines):
+            if line.startswith(f"{variable_name}="):
+                lines[i] = f"{variable_name}={value}\n"
+                updated = True
+                break
+
+        if not updated:
+            lines.append(f"{variable_name}={value}\n")
+
+        # Write back to file
+        with open(env_file, "w") as f:
+            f.writelines(lines)
+        print(f"{variable_name} persisted to {env_file}")
 
 def delete_environment_variable(variable_name: str):
     """
