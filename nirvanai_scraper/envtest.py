@@ -1,108 +1,101 @@
-import os
-from dotenv import load_dotenv, find_dotenv
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 
+# Load the image again
+image = Image.open(input_image_path).convert("RGBA")
 
-load_dotenv(find_dotenv("../.env"), override=True)
+# Sample background color
+sample_area = image.crop((30, 20, 150, 60))
+background_color = sample_area.getpixel((10, 10))
 
-print(f"hello {os.getenv('VBT_PRO_SECRET_URL')}")
+# Draw text with matching background color
+draw = ImageDraw.Draw(image)
 
-def get_environment_variable(variable_name: str):
-    """
-    Retrieve the value of a specific environment variable.
-    :param variable_name: The name of the environment variable to retrieve
-    :return: The value of the environment variable, or None if not found
-    """
-    value = os.getenv(variable_name)
-    if value is None:
-        print(f"Warning: {variable_name} not found in environment variables.")
-    return value
+# Dynamic text box size adjustment for multiple lines
+def draw_multiline_text(draw, text, position, font, max_width):  # [Original]
+    lines = []
+    words = text.split()
+    current_line = ""
+    for word in words:  # [Incremental] Better text wrapping
+        test_line = current_line + " " + word if current_line else word
+        width, _ = draw.textsize(test_line, font=font)
+        if width <= max_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line)
+            current_line = word
+    if current_line:
+        lines.append(current_line)
 
-def set_environment_variable(variable_name: str, value: str, persist: bool = False, env_file: str = ".env"):
-    """
-    Set a new environment variable or update an existing one.
-    Optionally persist the variable to a .env file.
-    
-    :param variable_name: The name of the environment variable
-    :param value: The value to set for the environment variable
-    :param persist: Whether to save the variable to a .env file
-    :param env_file: The .env file path
-    """
-    if not variable_name.isidentifier():
-        raise ValueError("Invalid environment variable name.")
+    y_offset = 0
+    for line in lines:
+        draw.text((position[0], position[1] + y_offset), line, font=font, fill="black")
+        y_offset += font.getsize(line)[1]
+    return (position[0], position[1] + y_offset)
 
-    # Check if variable already exists
-    if variable_name in os.environ:
-        print(f"Overwriting existing variable: {variable_name}")
+# Add the rectangle and text
+rectangle_position = (30, 20, 150, 60)
+text_position = (40, 30)
+new_text = "Sample text for multiline support"
+font_path = "path_to_font.ttf"
 
-    os.environ[variable_name] = value
-    print(f"{variable_name} set to {value}")
+# [Incremental] Add font loading with error handling
+try:
+    font = ImageFont.truetype(font_path, 20)
+except IOError:
+    print("Error: Font file not found.")
+    font = ImageFont.load_default()
 
-    if persist:
-        lines = []
-        # Load existing .env content
-        if os.path.exists(env_file):
-            with open(env_file, "r") as f:
-                lines = f.readlines()
+# Draw the rectangle and multiline text
+draw.rectangle(rectangle_position, fill=background_color)
+draw_multiline_text(draw, new_text, text_position, font, max_width=120)
 
-        # Update or append the variable
-        updated = False
-        for i, line in enumerate(lines):
-            if line.startswith(f"{variable_name}="):
-                lines[i] = f"{variable_name}={value}\n"
-                updated = True
-                break
+# [Incremental] Resize image to fixed dimensions (optional enhancement)
+fixed_size = (300, 300)
+image = image.resize(fixed_size, Image.ANTIALIAS)
 
-        if not updated:
-            lines.append(f"{variable_name}={value}\n")
+# Add a border around the image
+border_size = 10
+image_with_border = ImageOps.expand(image, border=border_size, fill=background_color)
 
-        # Write back to file
-        with open(env_file, "w") as f:
-            f.writelines(lines)
-        print(f"{variable_name} persisted to {env_file}")
+# Apply a filter (e.g., blur) to the image for added effect
+image_with_border = image_with_border.filter(ImageFilter.GaussianBlur(radius=2))
 
-def delete_environment_variable(variable_name: str):
-    """
-    Delete an environment variable if it exists.
-    :param variable_name: The name of the environment variable to delete
-    """
-    if variable_name in os.environ:
-        del os.environ[variable_name]
-        print(f"{variable_name} has been deleted.")
-    else:
-        print(f"Warning: {variable_name} not found in environment variables.")
+# Create a transparent watermark layer
+watermark_text = "Nirvanai AI"
+watermark_font_size = 15
 
-def save_environment_variables_to_file(file_path: str):
-    """
-    Save the current environment variables to a .env file.
-    :param file_path: The path where the .env file will be saved
-    """
-    with open(file_path, 'w') as file:
-        for key, value in os.environ.items():
-            file.write(f"{key}={value}\n")
-    print(f"Environment variables have been saved to {file_path}")
+# [Incremental] Add fallback font handling for watermark
+try:
+    watermark_font = ImageFont.truetype(font_path, watermark_font_size)
+except IOError:
+    watermark_font = ImageFont.load_default()
 
-def update_environment_variable(variable_name: str, new_value: str):
-    """
-    Update the value of an environment variable by appending or modifying it.
-    :param variable_name: The name of the environment variable to update
-    :param new_value: The new value to append or set for the environment variable
-    """
-    current_value = os.getenv(variable_name, "")
-    updated_value = current_value + new_value  # Append the new value
-    os.environ[variable_name] = updated_value
-    print(f"{variable_name} updated to {updated_value}")
+# Create a new transparent image for watermark
+watermark_layer = Image.new("RGBA", image_with_border.size, (255, 255, 255, 0))
+draw_watermark = ImageDraw.Draw(watermark_layer)
 
-# Example usage
-print_all_environment_variables()
+# Calculate watermark position
+watermark_width, watermark_height = draw_watermark.textsize(watermark_text, font=watermark_font)
+watermark_position = (
+    image_with_border.width - watermark_width - 20,
+    image_with_border.height - watermark_height - 10,
+)
 
-# Set a new environment variable
-set_environment_variable('NEW_VARIABLE', 'SomeValue')
+# Add watermark with transparency
+watermark_color = (128, 128, 128, 150)  # Gray with transparency
+draw_watermark.text(watermark_position, watermark_text, fill=watermark_color, font=watermark_font)
 
-# Update an existing environment variable by appending a value
-update_environment_variable('VBT_PRO_SECRET_URL', '/new_path')
+# Merge watermark layer with the image
+final_image = Image.alpha_composite(image_with_border.convert("RGBA"), watermark_layer)
 
-# Save current environment variables to a file
-save_environment_variables_to_file("../new_env_file.env")
+# Save the final image (PNG)
+output_final_image_path = "/mnt/data/image_with_nirvanai_final_with_border.png"
+final_image.save(output_final_image_path)
 
-# Delete an environment variable
-delete_environment_variable('NEW_VARIABLE')
+# [Incremental] Save as JPEG version (optional additional format)
+jpeg_output_path = "/mnt/data/image_with_nirvanai_final_with_border.jpg"
+final_image.convert("RGB").save(jpeg_output_path, "JPEG")
+
+print(f"Final image with border, watermark, and additional effects saved to: {output_final_image_path}")
+print(f"Also saved as JPEG to: {jpeg_output_path}")  # [Incremental]
