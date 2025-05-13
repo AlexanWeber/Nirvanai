@@ -1,12 +1,17 @@
-# Define here the models for your scraped items
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/items.html
-
 import scrapy
 
-
 class QuantScraperItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    # Title of the article or post
+    title = scrapy.Field()
+    
+    # URL of the scraped content
+    url = scrapy.Field()
+    
+    # Main body or content of the page
+    content = scrapy.Field()
+    
+    # Date when the article was published
+    publish_date = scrapy.Field()
+    
+    # Name of the author or source
+    author = scrapy.Field()
