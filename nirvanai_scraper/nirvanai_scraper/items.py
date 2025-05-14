@@ -15,3 +15,13 @@ class QuantScraperItem(scrapy.Item):
     
     # Name of the author or source
     author = scrapy.Field()
+
+    # [Incremental] Tags or categories associated with the article
+    tags = scrapy.Field()
+
+    # [Incremental] Short summary or abstract of the content
+    summary = scrapy.Field()
+
+    # [Incremental] Credibility score or source reliability metric
+    credibility_score = scrapy.Field()
+
